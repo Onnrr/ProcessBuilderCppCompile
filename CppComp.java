@@ -194,7 +194,14 @@ public class CppComp {
      * Will be used for removing temporary files after the process is completed
      */
     private void removeFiles() {
-        // TODO
+        File f1 = new File("program.cpp");
+        File f2 = new File("prog.exe");
+        File f3 = new File("prog.out");
+        File f4 = new File("prog");
+        f1.delete();
+        f2.delete();
+        f3.delete();
+        f4.delete();
     }
 
     /**
