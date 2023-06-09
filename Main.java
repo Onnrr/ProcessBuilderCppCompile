@@ -1,4 +1,3 @@
-import java.io.File;
 import java.util.Scanner;
 
 public class Main {
@@ -11,9 +10,8 @@ public class Main {
             System.out.println("Compiler is not installed");
         }
 
-        File f = new File("aa.cpp");
         try {
-            c.executeFile(f);
+            c.executeFile("bb.cpp");
         } catch (Exception e) {
             e.printStackTrace();
         }

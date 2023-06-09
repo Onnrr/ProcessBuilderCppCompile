@@ -55,6 +55,17 @@ public class CppComp {
             e.printStackTrace();
         }
     }
+
+    public void executeFile(String fileName) throws Exception {
+        if (!fileName.endsWith(".cpp")) {
+            throw new Exception("Given file must have extension \".cpp\"");
+        }
+        File f = new File(fileName);
+        if (!f.isFile()) {
+            throw new Exception("File \"" + fileName + "\" does not exist");
+        }
+        executeFile(f);
+    }
     
     /**
      * Compiles and runs the C++ file given as argument
@@ -142,7 +153,7 @@ public class CppComp {
 
     /**
      * Checks if the g++ compiler is installed using another process
-     * Runs "gcc --version"
+     * Runs "g++ --version"
      * @return true if the compiler is installed
      */
     public static boolean checkCompiler() {
@@ -191,7 +202,7 @@ public class CppComp {
     }
 
     /**
-     * Will be used for removing temporary files after the process is completed
+     * Used for removing temporary files after the process is completed
      */
     private void removeFiles() {
         File f1 = new File("program.cpp");
@@ -240,16 +251,11 @@ public class CppComp {
      * and writes to the std.out
      */
     private class AsyncRead implements Runnable {
-        boolean running;
-        public AsyncRead() {
-            running = true;
-        }
-
         @Override
         public void run() {
             int s;
             try {
-                while (running && reader != null && ((s = reader.read()) != -1)) {
+                while (reader != null && ((s = reader.read()) != -1)) {
                     System.out.print((char)s);
                 }
                 if (readFinished != null) {
