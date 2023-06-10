@@ -11,7 +11,7 @@ public class Main {
         }
 
         try {
-            c.executeFile("bb.cpp");
+            c.executeFile("aa.cpp");
         } catch (Exception e) {
             e.printStackTrace();
         }

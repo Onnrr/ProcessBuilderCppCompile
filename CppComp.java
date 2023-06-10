@@ -24,6 +24,7 @@ public class CppComp {
     BufferedWriter writer;
     BufferedReader reader;
     CompletableFuture<Boolean> readFinished;
+    CompletableFuture<Boolean> compileSuccessful;
 
     /**
      * Creates instance of the class with no active process
@@ -38,6 +39,7 @@ public class CppComp {
         writer = null;
         reader = null;
         readFinished = null;
+        compileSuccessful = null;
     }
 
     /**
@@ -78,23 +80,26 @@ public class CppComp {
         if (!file.getName().endsWith(".cpp")) {
             throw new Exception("Given file must have extension \".cpp\"");
         }
-        ProcessBuilder pb = new ProcessBuilder("g++",file.getName(), "-o", "prog");
-        Process compileProcess;
+        ProcessBuilder compilepb = new ProcessBuilder("g++",file.getName(), "-o", "prog");
+        compilepb.redirectErrorStream(true);
         try {
-            compileProcess = pb.start();
-            int compileExitStatus = compileProcess.waitFor();
-            if (compileExitStatus != 0) {
-                System.err.println("Error: Compilation failed.");
-                System.exit(1);
-            }
+            setActiveProcess(compilepb.start());
         } catch (IOException e) {
-            System.err.println("Error");
-        } catch (InterruptedException e) {
-            System.err.println("Error"); // TODO Fix error messages
+            e.printStackTrace();
+        }
+        Thread waitCompile = new Thread(new CompileWait());
+        Thread readCompile = new Thread(new AsyncRead());
+        readCompile.start();
+        waitCompile.start();
+        Boolean success = compileSuccessful.get();
+        if (!success) {
+            System.out.println("Compile Failed");
+            return;
         }
         
-        pb = new ProcessBuilder("./prog");
-
+        
+        ProcessBuilder pb = new ProcessBuilder("./prog");
+        pb.redirectErrorStream(true);
         try {
             setActiveProcess(pb.start());
         } catch (IOException e) {
@@ -147,6 +152,7 @@ public class CppComp {
             writer = new BufferedWriter(new OutputStreamWriter(activeProcess.getOutputStream()));
             reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
             readFinished = new CompletableFuture<Boolean>();
+            compileSuccessful = new CompletableFuture<Boolean>();
         }
     }
 
@@ -238,6 +244,38 @@ public class CppComp {
                 if (finished) {
                     setActiveProcess(null);
                     removeFiles();
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+            
+        }
+    }
+
+    /**
+     * Waits for the active process to finish execution
+     * Then waits for the process read if it has not yet been completed
+     * Finally sets active process to null and removes the temporary files
+     * Similar to ProcessWait but also sets the compile status for synchronization
+     */
+    private class CompileWait implements Runnable {
+        @Override
+        public void run() {
+            int status = -1;
+            try {
+                status = activeProcess.waitFor();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (status != 0) {
+                compileSuccessful.complete(false);
+                return;
+            }
+            try {
+                Boolean finished = readFinished.get();
+                if (finished) {
+                    setActiveProcess(null);
+                    compileSuccessful.complete(true);
                 }
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
